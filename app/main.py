@@ -1,20 +1,31 @@
 # C:\Users\usman\Desktop\Interview\API_Course\envAPI\Scripts\activate.bat
 # uvicorn app.main:app --reload
+# pip freeze -> requirements.txt
 
 import random
-from typing import Optional
 from fastapi import FastAPI, HTTPException, Response, status
 from pydantic import BaseModel
+import psycopg
+from psycopg.rows import dict_row
 
 
 app = FastAPI()
 
 
 class Post(BaseModel):
-    title: str | int
+    title: str
     content: str
     published: bool = True
-    rating: Optional[int] = None
+
+
+try:
+    conn = psycopg.connect("host=localhost dbname=fastapi user=postgres password=12345 port=5432", row_factory=dict_row)
+    cursor = conn.cursor()
+except Exception as error:
+    print('Connection to databse failed!')
+    print(f'Error: {error}')
+else:
+    print('Database connection was succesfull!')
 
 
 my_posts = [{"title": "title of post 1", "content": "content of post 1", "id": 1},
