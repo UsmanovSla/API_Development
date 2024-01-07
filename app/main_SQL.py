@@ -2,16 +2,11 @@
 # uvicorn app.main:app --reload
 # pip freeze -> requirements.txt
 
-from fastapi import FastAPI, HTTPException, Response, status, Depends
+from fastapi import FastAPI, HTTPException, Response, status
 from pydantic import BaseModel
 import psycopg
 from psycopg.rows import dict_row
-from . import models
-from sqlalchemy.orm import Session
-from .database import engine, get_db
 
-
-models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
@@ -30,11 +25,6 @@ except Exception as error:
     print(f'Error: {error}')
 else:
     print('Database connection was succesfull!')
-
-
-@app.get("/sqlalchemy")
-def test_posts(db: Session = Depends(get_db)):
-    return {"status": "success"}
 
 
 @app.get("/")
