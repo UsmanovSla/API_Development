@@ -2,10 +2,11 @@
 # uvicorn app.main:app --reload
 # pip freeze -> requirements.txt
 
+from typing import List
 from fastapi import FastAPI, HTTPException, Response, status, Depends
 import psycopg
 from psycopg.rows import dict_row
-from . import models, schemas
+from . import models, schemas, utils
 from sqlalchemy.orm import Session
 from .database import engine, get_db
 
@@ -29,7 +30,7 @@ def root():
     return {"message": "Hello world!!!"}
 
 
-@app.get("/posts")
+@app.get("/posts", response_model=List[schemas.Post])
 def get_posts(db: Session = Depends(get_db)):
     # cursor.execute('''SELECT * FROM posts''')
     # posts = cursor.fetchall()
@@ -50,7 +51,7 @@ def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db)):
     return new_post
 
 
-@app.get('/posts/{id}')
+@app.get('/posts/{id}', response_model=schemas.Post)
 def get_post(id: int, db: Session = Depends(get_db)):
     # cursor.execute('''SELECT * FROM posts WHERE id = %s RETURNING *''', (str(id),))
     # post = cursor.fetchone()
@@ -78,7 +79,7 @@ def delete_post(id: int, db: Session = Depends(get_db)):
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@app.put("/posts/{id}")
+@app.put("/posts/{id}", response_model=schemas.Post)
 def update_post(id: int, post: schemas.PostCreate, db: Session = Depends(get_db)):
     # cursor.execute('''UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *''',
     #                (post.title, post.content, post.published, str(id)))
@@ -94,3 +95,68 @@ def update_post(id: int, post: schemas.PostCreate, db: Session = Depends(get_db)
     db.commit()
 
     return updated_post.first()
+
+
+@app.post("/users", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOut)
+def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+
+    # hash password - user.password
+    hashed_password = utils.hash(user.password)
+    user.password = hashed_password
+
+    new_user = models.User(**user.model_dump())
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+
+
+@app.get('/users/{id}', response_model=schemas.UserOut)
+def get_user(id: int, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == id).first()
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"user with {id=} was not exist")
+
+    return user
+
+
+@app.get("/users", response_model=List[schemas.UserOut])
+def get_users(db: Session = Depends(get_db)):
+    users = db.query(models.User).all()
+    return users
+
+
+@app.put("/users/{id}", response_model=schemas.UserOut)
+def update_user(id: int, user: schemas.UserCreate, db: Session = Depends(get_db)):
+
+    updated_user = db.query(models.User).filter(models.User.id == id)
+
+    if not updated_user.first():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"user with {id=} was not exist")
+
+    # hash password - user.password
+    hashed_password = utils.hash(user.password)
+    user.password = hashed_password
+
+    updated_user.update(user.model_dump(), synchronize_session=False)
+    db.commit()
+
+    return updated_user.first()
+
+
+@app.delete("/users/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(id: int, db: Session = Depends(get_db)):
+
+    user = db.query(models.User).filter(models.User.id == id)
+
+    if not user.first():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"user with {id=} was not exist")
+
+    user.delete(synchronize_session=False)
+    db.commit()
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
