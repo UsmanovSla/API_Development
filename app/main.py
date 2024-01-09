@@ -5,10 +5,9 @@
 from fastapi import FastAPI
 import psycopg
 from psycopg.rows import dict_row
-
 from . import models
 from .database import engine
-from routers import post, user
+from .routers import post, user
 
 models.Base.metadata.create_all(bind=engine)
 
