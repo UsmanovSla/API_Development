@@ -5,10 +5,13 @@ from ..database import get_db
 from sqlalchemy.orm import Session
 
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/users",
+    tags=['Users']
+)
 
 
-@router.post("/users", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOut)
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=schemas.UserOut)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
     # hash password - user.password
@@ -22,7 +25,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 
-@router.get('/users/{id}', response_model=schemas.UserOut)
+@router.get('/{id}', response_model=schemas.UserOut)
 def get_user(id: int, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.id == id).first()
 
@@ -33,13 +36,13 @@ def get_user(id: int, db: Session = Depends(get_db)):
     return user
 
 
-@router.get("/users", response_model=List[schemas.UserOut])
+@router.get("", response_model=List[schemas.UserOut])
 def get_users(db: Session = Depends(get_db)):
     users = db.query(models.User).all()
     return users
 
 
-@router.put("/users/{id}", response_model=schemas.UserOut)
+@router.put("/{id}", response_model=schemas.UserOut)
 def update_user(id: int, user: schemas.UserCreate, db: Session = Depends(get_db)):
 
     updated_user = db.query(models.User).filter(models.User.id == id)
@@ -58,7 +61,7 @@ def update_user(id: int, user: schemas.UserCreate, db: Session = Depends(get_db)
     return updated_user.first()
 
 
-@router.delete("/users/{id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(id: int, db: Session = Depends(get_db)):
 
     user = db.query(models.User).filter(models.User.id == id)
