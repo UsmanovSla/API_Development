@@ -3,10 +3,9 @@
 # pip freeze -> requirements.txt
 
 from fastapi import FastAPI, HTTPException, Response, status, Depends
-from pydantic import BaseModel
 import psycopg
 from psycopg.rows import dict_row
-from . import models
+from . import models, schemas
 from sqlalchemy.orm import Session
 from .database import engine, get_db
 
@@ -14,13 +13,6 @@ from .database import engine, get_db
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-
-
-class Post(BaseModel):
-    title: str
-    content: str
-    published: bool = True
-
 
 try:
     conn = psycopg.connect("host=localhost dbname=fastapi user=postgres password=12345 port=5432", row_factory=dict_row)
@@ -30,12 +22,6 @@ except Exception as error:
     print(f'Error: {error}')
 else:
     print('Database connection was succesfull!')
-
-
-@app.get("/sqlalchemy")
-def test_posts(db: Session = Depends(get_db)):
-    posts = db.query(models.Post).all()
-    return {"data": posts}
 
 
 @app.get("/")
@@ -52,7 +38,7 @@ def get_posts(db: Session = Depends(get_db)):
 
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
-def create_posts(post: Post, db: Session = Depends(get_db)):
+def create_posts(post: schemas.PostCreate, db: Session = Depends(get_db)):
     # cursor.execute('''INSERT INTO posts (title, content, published) VALUES(%s, %s, %s) RETURNING * ''',
     #                (post.title, post.content, post.published))
     # new_post = cursor.fetchall()
@@ -93,7 +79,7 @@ def delete_post(id: int, db: Session = Depends(get_db)):
 
 
 @app.put("/posts/{id}")
-def update_post(id: int, post: Post, db: Session = Depends(get_db)):
+def update_post(id: int, post: schemas.PostCreate, db: Session = Depends(get_db)):
     # cursor.execute('''UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *''',
     #                (post.title, post.content, post.published, str(id)))
     # updated_post = cursor.fetchone()
