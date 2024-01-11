@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from fastapi import HTTPException, Response, status, Depends, APIRouter
 from .. import models, schemas, oauth2
 from ..database import get_db
@@ -13,17 +13,21 @@ router = APIRouter(
 
 @router.get("", response_model=List[schemas.Post])
 def get_posts(db: Session = Depends(get_db),
-              current_user: int = Depends(oauth2.get_current_user)):
-    posts = db.query(models.Post).all()
-    return posts
+              current_user: int = Depends(oauth2.get_current_user),
+              limit: int = 10, skip: int = 0, search: Optional[str] = ""):
+    posts_querry = db.query(models.Post).filter(models.Post.user_id == current_user.id).\
+                   order_by(models.Post.id).limit(limit).offset(skip).all()
+
+    # posts_querry = db.query(models.Post).filter(models.Post.title.contains(search)).\
+    #                order_by(models.Post.id).limit(limit).offset(skip).all()
+    return posts_querry
 
 
 @router.post("", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
 def create_posts(post: schemas.PostCreate,
                  db: Session = Depends(get_db),
                  current_user: int = Depends(oauth2.get_current_user)):
-    print(current_user)
-    new_post = models.Post(**post.model_dump())
+    new_post = models.Post(user_id=current_user.id, **post.model_dump())
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
@@ -38,6 +42,11 @@ def get_post(id: int,
     if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with {id=} was not found")
+
+    if post.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Not authorized to perfom request action")
+
     return post
 
 
@@ -45,13 +54,19 @@ def get_post(id: int,
 def delete_post(id: int,
                 db: Session = Depends(get_db),
                 current_user: int = Depends(oauth2.get_current_user)):
-    post = db.query(models.Post).filter(models.Post.id == id)
+    post_querry = db.query(models.Post).filter(models.Post.id == id)
 
-    if not post.first():
+    post = post_querry.first()
+
+    if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with {id=} was not exist")
 
-    post.delete(synchronize_session=False)
+    if post.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Not authorized to perfom request action")
+
+    post_querry.delete(synchronize_session=False)
     db.commit()
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -61,13 +76,19 @@ def delete_post(id: int,
 def update_post(id: int, post: schemas.PostCreate,
                 db: Session = Depends(get_db),
                 current_user: int = Depends(oauth2.get_current_user)):
-    updated_post = db.query(models.Post).filter(models.Post.id == id)
+    post_querry = db.query(models.Post).filter(models.Post.id == id)
 
-    if not updated_post.first():
+    post = post_querry.first()
+
+    if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"post with {id=} was not exist")
 
-    updated_post.update(post.model_dump(), synchronize_session=False)
+    if post.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Not authorized to perfom request action")
+
+    post_querry.update(post.model_dump(), synchronize_session=False)
     db.commit()
 
-    return updated_post.first()
+    return post
