@@ -1,3 +1,5 @@
 app/__pycache__
 app/routers/__pycache__
 .env
+.gitignore
+app/__pycache__/main.cpython-312.pyc
