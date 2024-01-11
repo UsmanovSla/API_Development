@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from fastapi import HTTPException, Response, status, Depends, APIRouter
 from .. import models, schemas, oauth2
 from ..database import get_db
@@ -13,8 +13,13 @@ router = APIRouter(
 
 @router.get("", response_model=List[schemas.Post])
 def get_posts(db: Session = Depends(get_db),
-              current_user: int = Depends(oauth2.get_current_user)):
-    posts_querry = db.query(models.Post).filter(models.Post.user_id == current_user.id).all()
+              current_user: int = Depends(oauth2.get_current_user),
+              limit: int = 10, skip: int = 0, search: Optional[str] = ""):
+    posts_querry = db.query(models.Post).filter(models.Post.user_id == current_user.id).\
+                   order_by(models.Post.id).limit(limit).offset(skip).all()
+
+    # posts_querry = db.query(models.Post).filter(models.Post.title.contains(search)).\
+    #                order_by(models.Post.id).limit(limit).offset(skip).all()
     return posts_querry
 
 
