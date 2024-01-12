@@ -4,6 +4,7 @@ from . import schemas, database, models
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
+from .config import settings
 
 
 oauth2_schema = OAuth2PasswordBearer(tokenUrl='login')
@@ -14,9 +15,9 @@ oauth2_schema = OAuth2PasswordBearer(tokenUrl='login')
 
 # to get a string like this run:
 # openssl rand -hex 32
-SECRET_KEY = "dfg62nowef4651npdfger84bs6sdf4h8tyjk46s1g13s0v7qwf7n56672b15z1c2"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+SECRET_KEY = settings.secret_key
+ALGORITHM = settings.algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
 
 
 def create_access_token(data: dict):
