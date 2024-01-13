@@ -1,7 +1,0 @@
-app/__pycache__
-app/routers/__pycache__
-.env
-.gitignore
-app/__pycache__/database.cpython-312.pyc
-app/__pycache__/main.cpython-312.pyc
-app/__pycache__/oauth2.cpython-312.pyc
