@@ -1,7 +1,6 @@
 # C:\Users\usman\Desktop\Interview\API_Course\envAPI\Scripts\activate.bat
 # uvicorn app.main:app --reload
 # pip freeze -> requirements.txt
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .routers import post, user, auth, vote
